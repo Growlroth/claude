@@ -1,0 +1,556 @@
+<title>Aperol Spritz in 30 Seconds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Deliberately single-theme: a paper-white explainer card, like the source illustration. */
+  :root {
+    --paper: #FFFBF4;
+    --card: #FFFFFF;
+    --ink: #3B2A22;
+    --muted: #8A7466;
+    --orange: #F26B1D;
+    --deep: #C8430C;
+    --line: #EADFD3;
+    color-scheme: light;
+  }
+  html, body { background: var(--paper); color: var(--ink); }
+  body {
+    font-family: Kalam, "Comic Sans MS", "Chalkboard SE", cursive;
+    padding-inline: 16px;
+    padding-block: 16px 24px;
+  }
+  .stage { max-width: 1280px; margin: 0 auto; display: grid; gap: 12px; }
+  #film {
+    display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .controls button {
+    font: inherit; font-weight: 700; font-size: 16px;
+    border: 2px solid var(--ink); background: var(--paper); color: var(--ink);
+    border-radius: 999px; padding: 4px 18px; cursor: pointer;
+  }
+  .controls button:hover { background: #FFE9D8; }
+  .controls button:focus-visible, #scrub:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+  #scrub { flex: 1 1 200px; min-width: 0; accent-color: var(--orange); }
+  .time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 9ch; text-align: right; }
+</style>
+
+<div class="stage">
+  <svg id="film" viewBox="0 0 1920 1080" role="img" aria-labelledby="filmTitle filmDesc">
+    <title id="filmTitle">Aperol Spritz recipe animation</title>
+    <desc id="filmDesc">A wine glass is filled with ice, 90 ml prosecco, 60 ml Aperol and 30 ml soda water, then garnished with an orange slice and stirred once.</desc>
+    <defs>
+      <clipPath id="bowlClip">
+        <path d="M 610 300 C 596 420 598 560 700 632 Q 760 668 820 632 C 922 560 924 420 910 300 Z"/>
+      </clipPath>
+      <clipPath id="iceClip">
+        <path d="M 610 300 C 596 420 598 560 700 632 Q 760 668 820 632 C 922 560 924 420 910 300 Z"/>
+        <rect x="0" y="-400" width="1920" height="702"/>
+      </clipPath>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <linearGradient id="liqGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop id="lgTop" offset="0" stop-color="#F2D478"/>
+        <stop id="lgBot" offset="1" stop-color="#D9B85A"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="1920" height="1080" fill="#FFFFFF"/>
+
+    <!-- Title -->
+    <g id="title">
+      <text x="96" y="166" font-family="'Luckiest Guy', 'Arial Black', sans-serif" font-size="104" fill="#C8430C">Aperol Spritz</text>
+      <text x="90" y="160" font-family="'Luckiest Guy', 'Arial Black', sans-serif" font-size="104" fill="#F58A3A" stroke="#7A2E0A" stroke-width="3" paint-order="stroke">Aperol Spritz</text>
+    </g>
+    <text id="subtitle" x="92" y="218" font-family="Kalam, cursive" font-size="34" fill="#8A7466">3 parts prosecco · 2 parts Aperol · 1 part soda</text>
+
+    <!-- Measuring gauge -->
+    <g id="gauge" font-family="Kalam, cursive" font-size="24" fill="#8A7466" text-anchor="end">
+      <line x1="562" y1="652" x2="562" y2="365" stroke="#D8CBBE" stroke-width="10" stroke-linecap="round"/>
+      <line id="gaugeFill" x1="562" y1="652" x2="562" y2="652" stroke="#F2D478" stroke-width="10" stroke-linecap="round"/>
+      <g stroke="#8A7466" stroke-width="2">
+        <line x1="550" y1="652" x2="574" y2="652"/>
+        <line x1="550" y1="508.5" x2="574" y2="508.5"/>
+        <line x1="550" y1="412.8" x2="574" y2="412.8"/>
+        <line x1="550" y1="365" x2="574" y2="365"/>
+      </g>
+      <text x="540" y="660">0</text>
+      <text x="540" y="516">90</text>
+      <text x="540" y="421">150</text>
+      <text x="540" y="373">180 ml</text>
+      <path id="gaugeMarker" d="M 0 0 L -18 -11 L -18 11 Z" fill="#3B2A22" transform="translate(584 652) rotate(180)"/>
+    </g>
+
+    <!-- Live counter -->
+    <g id="counter">
+      <text id="cLabel" x="90" y="410" font-family="Kalam, cursive" font-weight="700" font-size="44" letter-spacing="3" fill="#E4571B">PROSECCO</text>
+      <text id="cNum" x="86" y="545" font-family="'Luckiest Guy', 'Arial Black', sans-serif" font-size="130" fill="#3B2A22"><tspan id="cVal">90</tspan><tspan id="cUnit" font-size="56" dx="10">ml</tspan></text>
+      <text id="cSub" x="92" y="600" font-family="Kalam, cursive" font-size="32" fill="#8A7466">3 parts · 3 oz</text>
+    </g>
+
+    <!-- Glass and everything in it -->
+    <g id="glassAll">
+      <path id="bowlTint" d="M 610 300 C 596 420 598 560 700 632 Q 760 668 820 632 C 922 560 924 420 910 300 Z" fill="#EEF6FA" opacity="0"/>
+      <g clip-path="url(#bowlClip)">
+        <g filter="url(#rough)">
+          <path id="liquid" d="" fill="url(#liqGrad)" opacity="0.93"/>
+          <path id="surface" d="" fill="none" stroke="#FFF1C9" stroke-width="6" opacity="0.8"/>
+        </g>
+        <g id="bubbles"></g>
+      </g>
+      <line id="stream" x1="848" y1="230" x2="848" y2="230" stroke="#F2D478" stroke-width="11" stroke-linecap="round" opacity="0"/>
+      <ellipse id="splash" cx="848" cy="600" rx="18" ry="5" fill="#FFFFFF" opacity="0"/>
+      <g id="ice" clip-path="url(#iceClip)"></g>
+      <g id="spoon" opacity="0">
+        <line x1="0" y1="-330" x2="0" y2="-10" stroke="#8C979E" stroke-width="7" stroke-linecap="round"/>
+        <path d="M -5 -300 L 5 -280 L -5 -260 L 5 -240 L -5 -220 L 5 -200" fill="none" stroke="#C7CFD4" stroke-width="3"/>
+        <circle cx="0" cy="-338" r="10" fill="#8C979E"/>
+        <ellipse cx="0" cy="8" rx="13" ry="20" fill="#AEB8BE" stroke="#6F7A81" stroke-width="3"/>
+      </g>
+      <!-- glass outline, drawn on top -->
+      <g id="glassLines" fill="none" stroke="#5B6B75" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path class="draw" pathLength="1" d="M 610 300 C 596 420 598 560 700 632 Q 760 668 820 632 C 922 560 924 420 910 300"/>
+        <ellipse class="draw" pathLength="1" cx="760" cy="300" rx="150" ry="16"/>
+        <path class="draw" pathLength="1" d="M 748 650 C 753 710 752 800 744 862"/>
+        <path class="draw" pathLength="1" d="M 772 650 C 767 710 768 800 776 862"/>
+        <ellipse class="draw" pathLength="1" cx="760" cy="872" rx="115" ry="18"/>
+        <path id="shine" class="draw" pathLength="1" d="M 634 345 C 626 425 632 500 664 556" stroke="#FFFFFF" stroke-width="9" opacity="0.85"/>
+      </g>
+      <g id="slice" filter="url(#rough)" opacity="0">
+        <path d="M -72 0 A 72 72 0 0 0 72 0 Z" fill="#E4571B" stroke="#7A2E0A" stroke-width="3"/>
+        <path d="M -63 0 A 63 63 0 0 0 63 0 Z" fill="#FFE8C4"/>
+        <path d="M -56 0 A 56 56 0 0 0 56 0 Z" fill="#F79A2E"/>
+        <g stroke="#FFE8C4" stroke-width="4" stroke-linecap="round">
+          <line x1="0" y1="6" x2="54" y2="6"/>
+          <line x1="0" y1="6" x2="44" y2="32"/>
+          <line x1="0" y1="6" x2="17" y2="52"/>
+          <line x1="0" y1="6" x2="-17" y2="52"/>
+          <line x1="0" y1="6" x2="-44" y2="32"/>
+          <line x1="0" y1="6" x2="-54" y2="6"/>
+        </g>
+        <circle cx="0" cy="6" r="6" fill="#FFE8C4"/>
+      </g>
+    </g>
+
+    <g id="bottles"></g>
+
+    <!-- Recipe card -->
+    <g id="panel">
+      <rect x="1270" y="80" width="570" height="880" rx="24" fill="#FFF6EC" stroke="#EADFD3" stroke-width="2"/>
+      <text x="1310" y="152" font-family="'Luckiest Guy', 'Arial Black', sans-serif" font-size="46" fill="#F26B1D">The Recipe</text>
+      <text x="1312" y="194" font-family="Kalam, cursive" font-size="28" fill="#8A7466">Serves 1 · large wine glass</text>
+      <g id="rows"></g>
+      <text x="1310" y="790" font-family="Kalam, cursive" font-weight="700" font-size="28" fill="#3B2A22">Ratio 3 : 2 : 1</text>
+      <rect x="1310" y="808" width="490" height="36" rx="8" fill="#FFFFFF" stroke="#D8CBBE" stroke-width="2" stroke-dasharray="6 6"/>
+      <rect id="barP" x="1310" y="808" width="0" height="36" fill="#E9C45C"/>
+      <rect id="barA" x="1555" y="808" width="0" height="36" fill="#EC5418"/>
+      <rect id="barS" x="1718.3" y="808" width="0" height="36" fill="#9CC9DD"/>
+      <g font-family="Kalam, cursive" font-size="22" fill="#8A7466" text-anchor="middle">
+        <text x="1432.5" y="872">prosecco</text>
+        <text x="1636.7" y="872">Aperol</text>
+        <text x="1759" y="872">soda</text>
+      </g>
+      <text id="total" x="1310" y="924" font-family="Kalam, cursive" font-weight="700" font-size="30" fill="#C8430C" opacity="0">180 ml in the glass · about 9% ABV</text>
+    </g>
+
+    <!-- Caption -->
+    <text id="capTag" x="760" y="940" text-anchor="middle" font-family="'Luckiest Guy', 'Arial Black', sans-serif" font-size="30" letter-spacing="2" fill="#F26B1D"></text>
+    <text id="capText" x="760" y="1002" text-anchor="middle" font-family="Kalam, cursive" font-weight="700" font-size="54" fill="#3B2A22"></text>
+
+    <g id="sparkles" fill="#F7B733" stroke="#C8430C" stroke-width="2"></g>
+  </svg>
+
+  <div class="controls">
+    <button id="play" type="button" aria-label="Pause">Pause</button>
+    <button id="restart" type="button">Restart</button>
+    <input id="scrub" type="range" min="0" max="30" step="0.01" value="0" aria-label="Timeline">
+    <span class="time" id="clock">0.0 / 30 s</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const DURATION = 30;
+  const $ = id => document.getElementById(id);
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+
+  // ---------- math ----------
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => clamp((t - a) / (b - a));
+  const eIO = k => 0.5 - 0.5 * Math.cos(Math.PI * k);
+  const eOut = k => 1 - Math.pow(1 - k, 3);
+  const eIn = k => k * k * k;
+  const eBack = k => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+  const eBounce = k => {
+    const n = 7.5625, d = 2.75;
+    if (k < 1 / d) return n * k * k;
+    if (k < 2 / d) return n * (k -= 1.5 / d) * k + 0.75;
+    if (k < 2.5 / d) return n * (k -= 2.25 / d) * k + 0.9375;
+    return n * (k -= 2.625 / d) * k + 0.984375;
+  };
+  const window01 = (t, a, b, f = 0.3) => clamp(Math.min((t - a) / f, (b - t) / f));
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgb = c => `rgb(${c.map(v => Math.round(v)).join(',')})`;
+  const mixc = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
+  let seed = 11;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  // ---------- recipe data ----------
+  const EMPTY_Y = 652, FULL_Y = 365, TOTAL_ML = 180;
+  const MOUTH = [848, 226], HOVER = [1010, 170], OFF_Y = -700, POUR_ANGLE = -118;
+  const pours = [
+    { key: 'p', name: 'PROSECCO', sub: 'DOC',       ml: 90, t0: 6,  inE: 0.9, tilt: [0.9, 1.5], pour: [1.6, 4.6],
+      liquid: '#F2D478', glass: '#4E7A45', foil: '#D9B24C', label: '#FFF6DA', text: '#3F5E37', w: 11, labelColor: '#A8841C', note: '3 parts · 3 oz' },
+    { key: 'a', name: 'APEROL',   sub: 'aperitivo', ml: 60, t0: 12, inE: 0.9, tilt: [0.9, 1.5], pour: [1.6, 4.2],
+      liquid: '#EC5418', glass: '#E0561C', foil: '#A8380B', label: '#FFF1E0', text: '#C8430C', w: 11, labelColor: '#E4571B', note: '2 parts · 2 oz' },
+    { key: 's', name: 'SODA',     sub: 'water',     ml: 30, t0: 18, inE: 0.7, tilt: [0.7, 1.2], pour: [1.3, 2.9],
+      liquid: '#DCEFF6', glass: '#9CC9DD', foil: '#5E8FA6', label: '#FFFFFF', text: '#3E7690', w: 8,  labelColor: '#3E7690', note: '1 part · 1 oz' },
+  ];
+  const COLORS = { p: hex('#F2D478'), a: hex('#EC5418'), s: hex('#E6F4F8') };
+  const STRENGTH = { p: 1, a: 4.5, s: 0.3 };
+
+  const pouredMl = (p, t) => {
+    const [ps, pe] = p.pour;
+    return p.ml * eIO(prog(t, p.t0 + ps + 0.25, p.t0 + pe + 0.2));
+  };
+
+  // ---------- build bottles ----------
+  const bottleLayer = $('bottles');
+  const BODY = 'M -14 0 L 14 0 L 14 90 C 14 120 46 125 46 160 L 46 370 Q 46 386 30 386 L -30 386 Q -46 386 -46 370 L -46 160 C -46 125 -14 120 -14 90 Z';
+  for (const p of pours) {
+    const g = el('g', { opacity: 0 }, bottleLayer);
+    el('path', { d: BODY, fill: p.glass, stroke: '#3B2A22', 'stroke-width': 3, 'fill-opacity': p.key === 's' ? 0.75 : 1 }, g);
+    el('rect', { x: -15, y: 0, width: 30, height: 78, fill: p.foil }, g);
+    el('rect', { x: -18, y: -4, width: 36, height: 12, rx: 3, fill: p.foil, stroke: '#3B2A22', 'stroke-width': 2 }, g);
+    el('line', { x1: -31, y1: 170, x2: -31, y2: 360, stroke: '#FFFFFF', 'stroke-width': 6, 'stroke-linecap': 'round', opacity: 0.35 }, g);
+    el('rect', { x: -40, y: 205, width: 80, height: 112, rx: 6, fill: p.label, stroke: '#3B2A22', 'stroke-width': 2 }, g);
+    const tx = el('text', { x: 0, y: 258, 'text-anchor': 'middle', 'font-family': "'Luckiest Guy', 'Arial Black', sans-serif", 'font-size': 20, fill: p.text, textLength: 66, lengthAdjust: 'spacingAndGlyphs' }, g);
+    tx.textContent = p.name;
+    const st = el('text', { x: 0, y: 290, 'text-anchor': 'middle', 'font-family': 'Kalam, cursive', 'font-size': 18, fill: p.text }, g);
+    st.textContent = p.sub;
+    p.node = g;
+  }
+
+  // ---------- ice ----------
+  const ICE = [
+    { x: 725, y: 612, r: 10,  f: 70, t: 2.9 },
+    { x: 797, y: 606, r: -14, f: 85, t: 3.45 },
+    { x: 690, y: 548, r: -22, f: 30, t: 4.0 },
+    { x: 832, y: 552, r: 18,  f: 42, t: 4.55 },
+  ];
+  const iceLayer = $('ice');
+  for (const c of ICE) {
+    const g = el('g', {}, iceLayer);
+    el('rect', { x: -32, y: -32, width: 64, height: 64, rx: 12, fill: '#FFFFFF', 'fill-opacity': 0.55, stroke: '#8FB2C2', 'stroke-width': 3 }, g);
+    el('path', { d: 'M -18 -20 L 14 -20', stroke: '#FFFFFF', 'stroke-width': 5, 'stroke-linecap': 'round' }, g);
+    el('path', { d: 'M -20 -14 L -20 10', stroke: '#FFFFFF', 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0.8 }, g);
+    c.node = g;
+  }
+
+  // ---------- bubbles ----------
+  const bubbleLayer = $('bubbles');
+  const BUBBLES = [];
+  for (let i = 0; i < 26; i++) {
+    const b = { x: 650 + rand() * 220, v: 0.22 + rand() * 0.4, ph: rand(), r: 2.5 + rand() * 3.5 };
+    b.node = el('circle', { cx: b.x, cy: 600, r: b.r, fill: '#FFFFFF', 'fill-opacity': 0.55, stroke: '#FFFFFF', 'stroke-width': 1.5 }, bubbleLayer);
+    BUBBLES.push(b);
+  }
+
+  // ---------- sparkles ----------
+  const SPARK = [[600, 250, 1.1, 26.6], [960, 230, 0.8, 26.8], [560, 470, 0.7, 27.0], [990, 520, 1.0, 26.9], [930, 380, 0.6, 27.1]];
+  for (const s of SPARK) {
+    s.node = el('path', { d: 'M0 -24 Q4 -4 24 0 Q4 4 0 24 Q-4 4 -24 0 Q-4 -4 0 -24 Z', opacity: 0 }, $('sparkles'));
+  }
+
+  // ---------- recipe rows ----------
+  const STEPS = [
+    { n: 1, name: 'Ice',          note: 'fill the glass',         amt: '4 cubes', a: 2.5,  b: 6 },
+    { n: 2, name: 'Prosecco',     note: '3 parts · well chilled',  amt: '90 ml',   a: 6,    b: 12 },
+    { n: 3, name: 'Aperol',       note: '2 parts',                 amt: '60 ml',   a: 12,   b: 18 },
+    { n: 4, name: 'Soda water',   note: '1 part · a splash',       amt: '30 ml',   a: 18,   b: 22.5 },
+    { n: 5, name: 'Orange slice', note: 'on the rim, one stir',    amt: '1 slice', a: 22.5, b: 26.5 },
+  ];
+  const rowsLayer = $('rows');
+  STEPS.forEach((s, i) => {
+    const y = 262 + i * 108;
+    const g = el('g', {}, rowsLayer);
+    s.hl = el('rect', { x: 1290, y: y - 50, width: 530, height: 98, rx: 16, fill: '#FFE1CB', opacity: 0 }, g);
+    s.badge = el('g', {}, g);
+    el('circle', { cx: 1330, cy: y, r: 26, fill: '#FFFFFF', stroke: '#3B2A22', 'stroke-width': 3 }, s.badge);
+    const bn = el('text', { x: 1330, y: y + 11, 'text-anchor': 'middle', 'font-family': "'Luckiest Guy', 'Arial Black', sans-serif", 'font-size': 30, fill: '#3B2A22' }, s.badge);
+    bn.textContent = s.n;
+    s.check = el('g', { transform: `translate(1330 ${y}) scale(0)` }, g);
+    el('circle', { cx: 0, cy: 0, r: 27, fill: '#F26B1D', stroke: '#C8430C', 'stroke-width': 3 }, s.check);
+    el('path', { d: 'M -12 1 L -3 10 L 13 -9', fill: 'none', stroke: '#FFFFFF', 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, s.check);
+    s.text = el('g', {}, g);
+    const nm = el('text', { x: 1378, y: y - 2, 'font-family': 'Kalam, cursive', 'font-weight': 700, 'font-size': 36, fill: '#3B2A22' }, s.text);
+    nm.textContent = s.name;
+    const nt = el('text', { x: 1378, y: y + 32, 'font-family': 'Kalam, cursive', 'font-size': 25, fill: '#8A7466' }, s.text);
+    nt.textContent = s.note;
+    s.amtNode = el('text', { x: 1800, y: y + 12, 'text-anchor': 'end', 'font-family': "'Luckiest Guy', 'Arial Black', sans-serif", 'font-size': 36, fill: '#3B2A22' }, s.text);
+    s.amtNode.textContent = s.amt;
+  });
+
+  // ---------- captions & counter phases ----------
+  const CAPTIONS = [
+    [0, 2.5, '', 'Start with a large wine glass'],
+    [2.5, 6, 'STEP 1 OF 5', 'Fill the glass with ice'],
+    [6, 12, 'STEP 2 OF 5', 'Pour 90 ml prosecco'],
+    [12, 18, 'STEP 3 OF 5', 'Add 60 ml Aperol'],
+    [18, 22.5, 'STEP 4 OF 5', 'Top with 30 ml soda water'],
+    [22.5, 25, 'STEP 5 OF 5', 'Hang an orange slice on the rim'],
+    [25, 26.5, 'STEP 5 OF 5', 'One gentle stir, keep the bubbles'],
+    [26.5, 999, '', 'Salute!'],
+  ];
+
+  const glassLines = [...document.querySelectorAll('#glassLines .draw')];
+  glassLines.forEach(p => p.setAttribute('stroke-dasharray', '1 1'));
+
+  const liquidPath = (L, amp, t) => {
+    let d = '', s = '';
+    for (let x = 570; x <= 950; x += 19) {
+      const y = L + amp * Math.sin(x * 0.045 + t * 7);
+      d += (x === 570 ? 'M ' : ' L ') + x + ' ' + y.toFixed(1);
+    }
+    s = d;
+    d += ' L 950 700 L 570 700 Z';
+    return [d, s];
+  };
+
+  // ---------- render one frame ----------
+  function render(t) {
+    // Intro
+    const ti = eOut(prog(t, 0, 0.8));
+    $('title').setAttribute('transform', `translate(0 ${(1 - ti) * 30})`);
+    $('title').setAttribute('opacity', ti);
+    $('subtitle').setAttribute('opacity', eOut(prog(t, 0.4, 1.2)));
+    const draw = eIO(prog(t, 0.3, 2.1));
+    glassLines.forEach(p => p.setAttribute('stroke-dashoffset', 1 - draw));
+    $('bowlTint').setAttribute('opacity', 0.7 * prog(t, 1.6, 2.3));
+
+    // Volumes
+    const ml = {};
+    let total = 0;
+    for (const p of pours) { ml[p.key] = pouredMl(p, t); total += ml[p.key]; }
+    const L = lerp(EMPTY_Y, FULL_Y, total / TOTAL_ML);
+    const pouring = pours.some(p => t > p.t0 + p.pour[0] && t < p.t0 + p.pour[1] + 0.3);
+    const stirring = t > 25.3 && t < 26.2;
+    const amp = pouring || stirring ? 3.5 : 1.2;
+
+    // Liquid color
+    let w = 0, col = [0, 0, 0];
+    for (const k of ['p', 'a', 's']) {
+      const wk = ml[k] * STRENGTH[k];
+      w += wk;
+      col = col.map((v, i) => v + COLORS[k][i] * wk);
+    }
+    col = w > 0 ? col.map(v => v / w) : COLORS.p;
+    const sinking = ml.a > 0 && ml.a < 60 ? 0.35 : 0; // Aperol sinks before it blends
+    $('lgTop').setAttribute('stop-color', rgb(mixc(col, [255, 255, 255], 0.08)));
+    $('lgBot').setAttribute('stop-color', rgb(mixc(mixc(col, [180, 60, 10], 0.12), COLORS.a, sinking)));
+    const [ld, sd] = liquidPath(L, amp, t);
+    $('liquid').setAttribute('d', total > 0.3 ? ld : '');
+    $('surface').setAttribute('d', total > 0.3 ? sd : '');
+    $('surface').setAttribute('stroke', rgb(mixc(col, [255, 255, 255], 0.5)));
+
+    // Bubbles
+    const fizz = clamp(total / 40) * (0.6 + 0.4 * clamp(ml.s / 30));
+    for (const b of BUBBLES) {
+      const k = ((t * b.v + b.ph) % 1);
+      const y = lerp(646, L + 10, k);
+      b.node.setAttribute('cy', y.toFixed(1));
+      b.node.setAttribute('cx', (b.x + Math.sin(t * 3 + b.ph * 9) * 3).toFixed(1));
+      b.node.setAttribute('opacity', (L < 630 ? fizz : 0) * (k > 0.9 ? (1 - k) * 10 : 1));
+    }
+
+    // Ice
+    const stirPhase = stirring ? Math.sin((t - 25.3) * Math.PI * 2.4) : 0;
+    ICE.forEach((c, i) => {
+      const k = prog(t, c.t, c.t + 0.6);
+      const target = Math.min(c.y, L + c.f);
+      const floating = L + c.f < c.y;
+      const bob = floating ? Math.sin(t * 2.2 + i * 1.7) * 3 : 0;
+      const y = lerp(-140, target, eBounce(k)) + bob;
+      const x = c.x + stirPhase * 8 * (i % 2 ? -1 : 1);
+      const r = c.r + (1 - k) * 120 + (floating ? Math.sin(t * 1.6 + i) * 4 : 0);
+      c.node.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r.toFixed(1)})`);
+      c.node.setAttribute('opacity', t < c.t ? 0 : 1);
+    });
+
+    // Bottles and stream
+    let stream = null;
+    for (const p of pours) {
+      const lt = t - p.t0;
+      const [ps, pe] = p.pour;
+      const outA = pe + 0.6, outB = pe + 1.3;
+      if (lt < 0 || lt > outB) { p.node.setAttribute('opacity', 0); continue; }
+      const k = eIO(prog(lt, p.tilt[0], p.tilt[1])) - eIO(prog(lt, pe + 0.1, pe + 0.6));
+      const drop = (1 - eOut(prog(lt, 0, p.inE))) * OFF_Y + eIn(prog(lt, outA, outB)) * OFF_Y;
+      const x = lerp(HOVER[0], MOUTH[0], k);
+      const y = lerp(HOVER[1], MOUTH[1], k) + drop;
+      const glug = lt > ps && lt < pe ? Math.sin(lt * 14) * 1.5 - 8 * prog(lt, ps, pe) : 0;
+      const a = lerp(0, POUR_ANGLE, k) + glug;
+      p.node.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(2)})`);
+      p.node.setAttribute('opacity', 1);
+      const head = lerp(MOUTH[1] + 4, L, eIn(prog(lt, ps, ps + 0.3)));
+      const tail = lerp(MOUTH[1] + 4, L, eIn(prog(lt, pe, pe + 0.3)));
+      if (head - tail > 1) stream = { p, head, tail, on: lt > ps + 0.25 && lt < pe + 0.2 };
+    }
+    const sEl = $('stream'), spl = $('splash');
+    if (stream) {
+      sEl.setAttribute('y1', stream.tail.toFixed(1));
+      sEl.setAttribute('y2', stream.head.toFixed(1));
+      sEl.setAttribute('stroke', stream.p.liquid);
+      sEl.setAttribute('stroke-width', stream.p.w);
+      sEl.setAttribute('opacity', 0.95);
+      spl.setAttribute('cy', L.toFixed(1));
+      spl.setAttribute('rx', (16 + Math.sin(t * 30) * 3).toFixed(1));
+      spl.setAttribute('opacity', stream.on ? 0.75 : 0);
+    } else {
+      sEl.setAttribute('opacity', 0);
+      spl.setAttribute('opacity', 0);
+    }
+
+    // Orange slice
+    const sk = prog(t, 22.8, 23.8);
+    const sl = $('slice');
+    sl.setAttribute('opacity', t < 22.8 ? 0 : 1);
+    sl.setAttribute('transform', `translate(905 ${lerp(-160, 300, eBack(sk)).toFixed(1)}) rotate(${lerp(-240, -75, eOut(sk)).toFixed(1)})`);
+
+    // Spoon
+    const spIn = eOut(prog(t, 25.0, 25.35)), spOut = eIn(prog(t, 26.15, 26.5));
+    const sp = $('spoon');
+    sp.setAttribute('opacity', t > 25 && t < 26.5 ? 1 : 0);
+    sp.setAttribute('transform', `translate(${(752 + stirPhase * 34).toFixed(1)} ${(560 + (1 - spIn) * -560 + spOut * -560).toFixed(1)}) rotate(${(-6 + stirPhase * 5).toFixed(1)})`);
+
+    // Final flourish
+    const pop = prog(t, 26.5, 27.1);
+    const sc = 1 + Math.sin(pop * Math.PI) * 0.035;
+    $('glassAll').setAttribute('transform', `translate(760 600) scale(${sc.toFixed(4)}) translate(-760 -600)`);
+    for (const s of SPARK) {
+      const k = prog(t, s[3], s[3] + 0.5);
+      const tw = t > s[3] + 0.5 ? 1 + Math.sin((t - s[3]) * 5) * 0.12 : eBack(k);
+      s.node.setAttribute('transform', `translate(${s[0]} ${s[1]}) scale(${(s[2] * tw).toFixed(3)}) rotate(${(t * 30).toFixed(1)})`);
+      s.node.setAttribute('opacity', k > 0 ? 1 : 0);
+    }
+
+    // Gauge
+    const gv = prog(t, 5.6, 6.4);
+    $('gauge').setAttribute('opacity', gv);
+    $('gaugeFill').setAttribute('y2', L.toFixed(1));
+    $('gaugeFill').setAttribute('stroke', rgb(col));
+    $('gaugeMarker').setAttribute('transform', `translate(584 ${L.toFixed(1)}) rotate(180)`);
+
+    // Counter
+    const cnt = $('counter');
+    let cOp = 0;
+    const setC = (label, color, val, unit, sub) => {
+      $('cLabel').textContent = label; $('cLabel').setAttribute('fill', color);
+      $('cVal').textContent = val; $('cUnit').textContent = unit; $('cSub').textContent = sub;
+    };
+    if (t >= 2.5 && t < 6) {
+      cOp = window01(t, 2.5, 6, 0.25);
+      const n = ICE.filter(c => t > c.t + 0.35).length;
+      setC('ICE', '#3E7690', n, 'cubes', 'big cubes melt slower');
+    } else if (t >= 6 && t < 22.5) {
+      const p = t < 12 ? pours[0] : t < 18 ? pours[1] : pours[2];
+      const end = p === pours[2] ? 22.5 : p.t0 + 6;
+      cOp = window01(t, p.t0, end, 0.25);
+      setC(p === pours[2] ? 'SODA WATER' : p.name, p.labelColor, Math.round(ml[p.key]), 'ml', p.note);
+    } else if (t >= 22.5 && t < 25) {
+      cOp = window01(t, 22.5, 25, 0.25);
+      setC('GARNISH', '#E4571B', 1, 'slice', 'fresh orange, cut to the middle');
+    } else if (t >= 25 && t < 26.5) {
+      cOp = window01(t, 25, 26.5, 0.25);
+      setC('STIR', '#3B2A22', 1, 'turn', 'slowly, from the bottom up');
+    } else if (t >= 26.5) {
+      cOp = prog(t, 26.5, 26.8);
+      setC('IN THE GLASS', '#F26B1D', 180, 'ml', 'serve right away');
+    }
+    cnt.setAttribute('opacity', cOp);
+    cnt.setAttribute('transform', `translate(0 ${((1 - cOp) * 14).toFixed(1)})`);
+
+    // Recipe rows
+    for (const s of STEPS) {
+      const act = window01(t, s.a, s.b, 0.3);
+      const done = eBack(prog(t, s.b - 0.1, s.b + 0.35));
+      s.hl.setAttribute('opacity', act);
+      s.badge.setAttribute('opacity', 1 - prog(t, s.b - 0.1, s.b + 0.1));
+      const y = s.hl.getAttribute('y') * 1 + 50;
+      s.check.setAttribute('transform', `translate(1330 ${y}) scale(${done.toFixed(3)})`);
+      s.text.setAttribute('opacity', t >= s.a - 0.2 ? 1 : 0.45);
+      s.amtNode.setAttribute('fill', act > 0.5 ? '#E4571B' : '#3B2A22');
+    }
+    $('barP').setAttribute('width', (245 * ml.p / 90).toFixed(1));
+    $('barA').setAttribute('width', (163.3 * ml.a / 60).toFixed(1));
+    $('barS').setAttribute('width', (81.7 * ml.s / 30).toFixed(1));
+    $('total').setAttribute('opacity', prog(t, 26.6, 27.2));
+
+    // Caption
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    const final = cap[3] === 'Salute!';
+    const cf = final ? prog(t, cap[0], cap[0] + 0.3) : window01(t, cap[0] === 0 ? 0.3 : cap[0], cap[1], 0.25);
+    $('capTag').textContent = cap[2];
+    $('capText').textContent = cap[3];
+    $('capText').setAttribute('font-family', final ? "'Luckiest Guy', 'Arial Black', sans-serif" : 'Kalam, cursive');
+    $('capText').setAttribute('font-size', final ? 76 : 54);
+    $('capText').setAttribute('fill', final ? '#F26B1D' : '#3B2A22');
+    $('capTag').setAttribute('opacity', cf);
+    $('capText').setAttribute('opacity', cf);
+  }
+
+  // ---------- playback ----------
+  const playBtn = $('play'), scrub = $('scrub'), clock = $('clock');
+  let t = 0, playing = false, last = null;
+
+  const show = () => {
+    render(t);
+    scrub.value = t;
+    clock.textContent = `${t.toFixed(1)} / 30 s`;
+    playBtn.textContent = playing ? 'Pause' : t >= DURATION ? 'Replay' : 'Play';
+    playBtn.setAttribute('aria-label', playBtn.textContent);
+  };
+  const tick = ts => {
+    if (playing) {
+      if (last !== null) t = Math.min(DURATION, t + (ts - last) / 1000);
+      last = ts;
+      if (t >= DURATION) { playing = false; last = null; }
+      show();
+    }
+    requestAnimationFrame(tick);
+  };
+  const play = () => { if (t >= DURATION) t = 0; playing = true; last = null; show(); };
+  const pause = () => { playing = false; last = null; show(); };
+
+  playBtn.addEventListener('click', () => (playing ? pause() : play()));
+  $('restart').addEventListener('click', () => { t = 0; play(); });
+  scrub.addEventListener('input', () => { t = +scrub.value; pause(); });
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+      e.preventDefault(); playing ? pause() : play();
+    }
+  });
+
+  window.renderAt = render; // used for frame-by-frame video export
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  t = reduced || window.__capture ? DURATION : 0;
+  show();
+  if (!window.__capture) requestAnimationFrame(tick);
+  if (!reduced && !window.__capture) {
+    const start = () => setTimeout(play, 400);
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(start, start);
+  }
+})();
+</script>

@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="sv"><head><meta charset="utf-8"><title>Strykligan 2026</title>
+<style>
+@font-face{font-family:Anton;src:url(Anton.ttf)}
+@font-face{font-family:Oswald;src:url(Oswald.ttf);font-weight:200 700}
+html,body{margin:0;background:#000}
+canvas{display:block;width:540px;height:960px}
+</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const W = 1080, H = 1920, CX = 540;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const logo = new Image(); logo.src = 'logo.png';
+
+const C = {
+  bg: '#0A170E', deep: '#050C07', green: '#4E7A3E', lime: '#8BC34A', grass: '#6FA84F',
+  white: '#F6F3EA', gold: '#F2C14E', red: '#E0443A', ink: '#0F2215'
+};
+
+// ---------- hjälpfunktioner ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = x => 1 - Math.pow(1 - x, 3);
+const eIn = x => x * x * x;
+const eExpo = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
+const eBack = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const hash = (a, b = 0) => { let h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
+const lerp = (a, b, x) => a + (b - a) * x;
+
+function txt(s, x, y, o = {}) {
+  const size = o.size || 100;
+  ctx.save();
+  ctx.translate(x, y);
+  if (o.rot) ctx.rotate(o.rot);
+  const sc = o.scale ?? 1; ctx.scale(sc, sc);
+  ctx.globalAlpha *= o.alpha ?? 1;
+  ctx.font = `${o.weight || ''} ${size}px ${o.font || 'Anton'}`;
+  ctx.letterSpacing = (o.ls || 0) + 'px';
+  ctx.textAlign = o.align || 'center';
+  ctx.textBaseline = 'middle';
+  if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.glowBlur || 40; }
+  if (o.stroke) { ctx.lineWidth = o.strokeW || 6; ctx.strokeStyle = o.stroke; ctx.strokeText(s, 0, 0); }
+  ctx.fillStyle = o.color || C.white;
+  ctx.fillText(s, 0, 0);
+  ctx.restore();
+}
+
+// slam: skala ned från stort till 1 kring tidpunkten t0
+function slam(t, t0, dur = 0.22, from = 2.4) {
+  const p = P(t, t0, t0 + dur);
+  return { on: t >= t0, scale: lerp(from, 1, eExpo(p)), alpha: clamp(p * 3) };
+}
+
+function drawLogo(x, y, d, alpha = 1, rot = 0) {
+  if (!logo.complete) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.beginPath(); ctx.arc(0, 0, d / 2, 0, Math.PI * 2); ctx.clip();
+  // logons cirkel: centrum 512,512, radie ~415 i 1024-bilden
+  const s = d / 830;
+  ctx.drawImage(logo, -512 * s, -512 * s, 1024 * s, 1024 * s);
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+}
+
+// ---------- effekter ----------
+const IMPACTS = [[2, 26], [5, 22], [9, 10], [9.5, 10], [10, 12], [12, 16], [12.5, 8], [13, 10], [17, 16], [17.5, 8], [18, 12],
+  [19.5, 36], [19.8, 22], [22, 14], [22.5, 8], [23, 10], [25.5, 14], [32, 46], [33, 10], [33.5, 10], [37, 26], [40, 18]];
+const FLASHES = [[2, .5], [5, .45], [12, .35], [17, .4], [19.5, .35], [22, .35], [25.5, .3], [32, .95], [37, .35], [40, .5]];
+
+function shake(t) {
+  let a = 0;
+  for (const [ti, amp] of IMPACTS) if (t >= ti) a += amp * Math.exp(-(t - ti) * 9);
+  return [Math.sin(t * 91) * a, Math.cos(t * 77) * a];
+}
+function flash(t) {
+  let a = 0;
+  for (const [ti, amp] of FLASHES) if (t >= ti) a += amp * Math.exp(-(t - ti) * 7);
+  return clamp(a);
+}
+function beat(t) {
+  const groove = (t >= 12 && t < 31) || (t >= 32 && t < 40);
+  if (!groove) return 0;
+  return Math.exp(-((t - 0) % 0.5) * 9);
+}
+
+// ---------- bakgrund ----------
+function background(t, tint) {
+  const b = beat(t);
+  ctx.fillStyle = C.deep; ctx.fillRect(-100, -100, W + 200, H + 200);
+  const g = ctx.createRadialGradient(CX, 900, 50, CX, 900, 1250);
+  const core = tint === 'red' ? `rgba(120,28,22,${0.85 + b * .15})` : tint === 'gold' ? `rgba(92,74,20,${0.8 + b * .2})` : `rgba(38,82,46,${0.75 + b * .25})`;
+  g.addColorStop(0, core); g.addColorStop(1, 'rgba(5,12,7,1)');
+  ctx.fillStyle = g; ctx.fillRect(-100, -100, W + 200, H + 200);
+
+  // planlinjer
+  ctx.save();
+  ctx.translate(CX, 960); ctx.rotate(t * 0.02 - 0.15); ctx.scale(1 + t * 0.006, 1 + t * 0.006);
+  ctx.strokeStyle = `rgba(246,243,234,${0.06 + b * 0.05})`; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(0, 0, 330, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-1400, 0); ctx.lineTo(1400, 0); ctx.stroke();
+  ctx.strokeRect(-420, -1350, 840, 420); ctx.strokeRect(-420, 930, 840, 420);
+  ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+  ctx.restore();
+
+  // diagonala ljusstrimmor
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    const x = ((t * 60 + i * 420) % 1600) - 300;
+    const gr = ctx.createLinearGradient(x - 120, 0, x + 120, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(160,220,140,0.035)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr;
+    ctx.setTransform(1, 0, -0.35, 1, 0, 0);
+    ctx.fillRect(x - 120 + 300, 0, 240, H);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  ctx.restore();
+}
+
+function vignette() {
+  const g = ctx.createRadialGradient(CX, 960, 500, CX, 960, 1200);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.65)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+
+// ---------- scen 1: logo (0–2) ----------
+function sLogo(t) {
+  const out = P(t, 1.7, 2.0);
+  const s = (0.92 + 0.08 * eOut(P(t, 0, 1.7))) * (1 + eIn(out) * 2.5);
+  const a = 1 - out;
+  // glöd bakom logon
+  ctx.save(); ctx.globalAlpha = a * 0.55;
+  const g = ctx.createRadialGradient(CX, 820, 200, CX, 820, 560);
+  g.addColorStop(0, 'rgba(139,195,74,0.5)'); g.addColorStop(1, 'rgba(139,195,74,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 200, W, 1300); ctx.restore();
+  drawLogo(CX, 820, 700 * s, a);
+  txt('SÄSONGEN 2026', CX, 1330, { size: 96, ls: 10, alpha: a * (1 - out) });
+  txt('NEDRÄKNINGEN TILL 7 NOVEMBER', CX, 1450, { size: 46, font: 'Oswald', weight: 500, ls: 8, color: C.gold, alpha: a });
+}
+
+// ---------- 10-segments-stapel ----------
+function roundsBar(t, played, y, mode) {
+  const w = 76, gap = 12, x0 = CX - (10 * w + 9 * gap) / 2;
+  for (let i = 0; i < 10; i++) {
+    const x = x0 + i * (w + gap);
+    const done = i < played;
+    const ap = done ? P(t, (mode.start || 0) + i * 0.15, (mode.start || 0) + i * 0.15 + 0.15) : 1;
+    roundRect(x, y, w, 34, 8);
+    if (done) {
+      ctx.fillStyle = `rgba(111,168,79,${ap})`; ctx.fill();
+    } else {
+      const pulse = mode.pulse ? 0.45 + 0.55 * Math.abs(Math.sin((t - i * 0.08) * 6)) : 0.3;
+      ctx.lineWidth = 4; ctx.strokeStyle = mode.pulse ? `rgba(242,193,78,${pulse})` : 'rgba(246,243,234,0.3)'; ctx.stroke();
+    }
+    txt(String(i + 1), x + w / 2, y + 70, { size: 30, font: 'Oswald', weight: 500, alpha: done ? 0.9 : 0.45 });
+  }
+}
+
+// ---------- scen 2: 4 av 10 (2–5) ----------
+function sPlayed(t) {
+  const out = eIn(P(t, 4.75, 5.0));
+  ctx.save(); ctx.translate(-out * 1200, 0);
+  const s4 = slam(t, 2.0, 0.25, 2.6);
+  txt('4', CX, 760, { size: 760, scale: s4.scale, alpha: s4.alpha, glow: 'rgba(139,195,74,0.6)', glowBlur: 60 });
+  const a1 = eOut(P(t, 2.5, 2.8));
+  txt('AV 10', CX + (1 - a1) * 300, 1220, { size: 150, alpha: a1, ls: 6 });
+  const a2 = eOut(P(t, 3.0, 3.3));
+  txt('OMGÅNGAR SPELADE', CX, 1360, { size: 64, font: 'Oswald', weight: 600, ls: 10, alpha: a2, color: C.lime });
+  if (t >= 3.0) roundsBar(t, 4, 1480, { start: 3.0 });
+  ctx.restore();
+}
+
+// ---------- scen 3: 6 kvar (5–8) ----------
+function sLeft(t) {
+  const out = P(t, 7.75, 8.0);
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  const s6 = slam(t, 5.0, 0.25, 2.6);
+  txt('6', CX, 760, { size: 760, scale: s6.scale * (1 + out * .4), alpha: s6.alpha, color: C.gold, glow: 'rgba(242,193,78,0.55)', glowBlur: 70 });
+  const a1 = eOut(P(t, 5.4, 5.7));
+  txt('OMGÅNGAR KVAR', CX, 1220, { size: 118, alpha: a1, ls: 4 });
+  roundsBar(t, 4, 1350, { start: -10, pulse: true });
+  const a2 = eBack(P(t, 6.5, 6.8));
+  txt('ALLT KAN HÄNDA.', CX, 1580, { size: 100, scale: a2, alpha: clamp(a2), color: C.white, ls: 4 });
+  ctx.restore();
+}
+
+// ---------- scen 4: kupongen (8–12) ----------
+const FINAL = ['1', 'X', '12', '2', '1', 'X2', '1', '2', '1X', 'X2', '2', '1', '1X'];
+function sCoupon(t) {
+  const out = P(t, 11.75, 12.0);
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  const ain = eOut(P(t, 8.0, 8.35));
+  txt('STRYKTIPSET', CX, 250, { size: 56, font: 'Oswald', weight: 600, ls: 18, color: C.lime, alpha: ain });
+  const top = 330, step = 68;
+  for (let r = 0; r < 13; r++) {
+    const y = top + r * step;
+    const rin = eOut(P(t, 8.0 + r * 0.03, 8.3 + r * 0.03));
+    ctx.save(); ctx.globalAlpha *= rin; ctx.translate((1 - rin) * -200, 0);
+    txt(String(r + 1), 330, y + 28, { size: 40, font: 'Oswald', weight: 600, alpha: 0.7, align: 'right' });
+    const settleT = 10.0 + r * 0.04;
+    const settled = t >= settleT;
+    let marks;
+    if (settled) marks = FINAL[r];
+    else {
+      const k = Math.floor(t * (10 + (t - 8) * 8));
+      const h = hash(r, k);
+      marks = h < .33 ? '1' : h < .6 ? 'X' : h < .8 ? '2' : h < .9 ? '1X' : 'X2';
+    }
+    const half = settled && marks.length === 2;
+    ['1', 'X', '2'].forEach((sym, i) => {
+      const x = 380 + i * 130, on = marks.includes(sym);
+      roundRect(x, y, 110, 56, 10);
+      if (on) {
+        ctx.fillStyle = settled ? (half ? C.gold : C.grass) : 'rgba(246,243,234,0.85)'; ctx.fill();
+      } else { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(246,243,234,0.25)'; ctx.stroke(); }
+      txt(sym, x + 55, y + 30, { size: 38, font: 'Oswald', weight: 700, color: on ? C.ink : 'rgba(246,243,234,0.45)' });
+    });
+    if (half && t > 10.8) {
+      const pl = 0.5 + 0.5 * Math.sin((t - 10.8) * 10);
+      roundRect(368, y - 8, 394, 72, 14); ctx.lineWidth = 4; ctx.strokeStyle = `rgba(242,193,78,${pl})`; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const rules = [['32 RADER', 9.0, C.white], ['5 HALVGARDERINGAR', 9.5, C.gold], ['MAX 7 ETTOR', 10.0, C.white]];
+  rules.forEach(([s, t0, col], i) => {
+    const sl = slam(t, t0, 0.18, 1.8);
+    if (!sl.on) return;
+    txt(s, CX, 1330 + i * 150, { size: 128, scale: sl.scale, alpha: sl.alpha, color: col, rot: -0.03, stroke: C.deep, strokeW: 10 });
+  });
+  const a4 = eOut(P(t, 10.8, 11.1));
+  txt('SAMMA REGLER FÖR ALLA. SAMMA NERVER.', CX, 1790, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a4 * 0.85 });
+  ctx.restore();
+}
+
+// ---------- siluett ----------
+function player(x, y, h, lit, seed) {
+  const s = h / 380;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s * (0.95 + hash(seed) * 0.1), s);
+  ctx.beginPath();
+  ctx.arc(0, -330, 42, 0, Math.PI * 2);
+  ctx.moveTo(-70, -270); ctx.quadraticCurveTo(0, -290, 70, -270);
+  ctx.lineTo(92, -120); ctx.lineTo(70, -115); ctx.lineTo(58, -200);
+  ctx.lineTo(55, -100); ctx.lineTo(62, 0); ctx.lineTo(18, 0); ctx.lineTo(4, -90);
+  ctx.lineTo(-4, -90); ctx.lineTo(-18, 0); ctx.lineTo(-62, 0); ctx.lineTo(-55, -100);
+  ctx.lineTo(-58, -200); ctx.lineTo(-70, -115); ctx.lineTo(-92, -120); ctx.closePath();
+  ctx.fillStyle = lit > 0.5 ? '#12281A' : '#060D08';
+  ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = `rgba(246,243,234,${0.25 + lit * 0.75})`;
+  if (lit > 0.5) { ctx.shadowColor = 'rgba(242,193,78,0.9)'; ctx.shadowBlur = 40 * lit; }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function crown(x, y, s, alpha) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.globalAlpha *= alpha;
+  ctx.beginPath();
+  ctx.moveTo(-80, 40); ctx.lineTo(-95, -45); ctx.lineTo(-45, -5); ctx.lineTo(0, -70);
+  ctx.lineTo(45, -5); ctx.lineTo(95, -45); ctx.lineTo(80, 40); ctx.closePath();
+  ctx.fillStyle = C.gold; ctx.shadowColor = 'rgba(242,193,78,0.9)'; ctx.shadowBlur = 50; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = C.ink; ctx.fillRect(-80, 48, 160, 16);
+  ctx.fillStyle = C.gold; ctx.fillRect(-80, 48, 160, 16);
+  ctx.restore();
+}
+
+// ---------- scen 5: vem vinner (12–17) ----------
+function sWinner(t) {
+  const out = P(t, 16.75, 17.0);
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  [['VEM', 12.0, 230, 210, C.white], ['VINNER', 12.5, 420, 210, C.white], ['DIVISIONEN?', 13.0, 590, 150, C.gold]].forEach(([s, t0, y, sz, col]) => {
+    const sl = slam(t, t0, 0.2, 2.2);
+    if (sl.on) txt(s, CX, y, { size: sz, scale: sl.scale, alpha: sl.alpha, color: col, ls: 4 });
+  });
+  const xs = [127, 292, 457, 623, 788, 953], baseY = 1640;
+  // strålkastaren vandrar allt snabbare
+  const sp = P(t, 13.4, 16.2);
+  const pos = (Math.sin(sp * sp * 26) * 0.5 + 0.5) * 5;
+  const final = t >= 16.2;
+  const spotX = final ? CX : lerp(xs[0], xs[5], pos / 5);
+  const on = t >= 13.4;
+  if (on) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(0, 700, 0, baseY);
+    g.addColorStop(0, 'rgba(246,243,234,0.0)'); g.addColorStop(1, `rgba(246,243,234,${final ? 0.22 : 0.16})`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(CX - 20, 700); ctx.lineTo(CX + 20, 700);
+    const wdt = final ? 520 : 130;
+    ctx.lineTo(spotX + wdt, baseY + 20); ctx.lineTo(spotX - wdt, baseY + 20); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(spotX, baseY + 10, wdt, 36, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(246,243,234,0.18)'; ctx.fill();
+    ctx.restore();
+  }
+  xs.forEach((x, i) => {
+    const pin = eOut(P(t, 12.2 + i * 0.08, 12.6 + i * 0.08));
+    const lit = final ? 1 : on ? clamp(1 - Math.abs(spotX - x) / 110) : 0;
+    ctx.save(); ctx.globalAlpha *= pin; ctx.translate(0, (1 - pin) * 200);
+    player(x, baseY, 450, lit, i);
+    ctx.restore();
+  });
+  if (on) {
+    const cy = 1010 + Math.sin(t * 5) * 14;
+    crown(spotX, cy, final ? 1.25 : 0.8, clamp((t - 13.4) * 3));
+    if (final) txt('?', CX, 1020 + Math.sin(t * 5) * 14, { size: 90, color: C.ink, scale: eBack(P(t, 16.2, 16.45)) });
+  }
+  ctx.restore();
+}
+
+// ---------- scen 6: vem åker ut (17–22) ----------
+function sOut(t) {
+  const out = P(t, 21.75, 22.0);
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  [['VEM', 17.0, 200, C.white], ['ÅKER', 17.5, 440, C.white], ['UT?', 18.0, 680, C.red]].forEach(([s, t0, y, col]) => {
+    const sl = slam(t, t0, 0.2, 2.2);
+    if (sl.on) txt(s, CX, y, { size: 200, scale: sl.scale, alpha: sl.alpha, color: col, ls: 6, glow: col === C.red ? 'rgba(224,68,58,0.7)' : null });
+  });
+  const tin = eOut(P(t, 17.2, 17.6));
+  txt('TABELLEN EFTER 4 OMGÅNGAR', CX, 850, { size: 40, font: 'Oswald', weight: 600, ls: 8, alpha: tin * 0.8, color: C.lime });
+  const widths = [300, 240, 330, 270, 310, 250];
+  for (let i = 0; i < 6; i++) {
+    let y = 900 + i * 118, x = 110, rot = 0;
+    const rin = eOut(P(t, 17.3 + i * 0.07, 17.7 + i * 0.07));
+    const danger = i >= 4;
+    const fallT = i === 5 ? 19.5 : 19.8;
+    if (danger && t > fallT) {
+      const ft = t - fallT;
+      y += 1600 * ft * ft + 60 * ft; rot = (i === 5 ? 0.35 : -0.28) * ft * 3; x += (i === 5 ? 80 : -60) * ft;
+    }
+    ctx.save(); ctx.globalAlpha *= rin;
+    ctx.translate(x + 430, y + 50); ctx.rotate(rot); ctx.translate(-430, -50);
+    const wob = danger && t > 18.6 && t < fallT ? Math.sin(t * 60) * 4 : 0;
+    ctx.translate(wob, 0);
+    roundRect(0, 0, 860, 100, 16);
+    ctx.fillStyle = danger ? (t > 18.6 ? `rgba(224,68,58,${0.55 + 0.3 * Math.abs(Math.sin(t * 8))})` : 'rgba(224,68,58,0.35)') : 'rgba(246,243,234,0.08)';
+    ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = danger ? 'rgba(224,68,58,0.9)' : 'rgba(246,243,234,0.18)'; ctx.stroke();
+    txt(String(i + 1), 60, 52, { size: 60, font: 'Anton', color: danger ? C.white : C.lime });
+    roundRect(120, 32, widths[i], 36, 18); ctx.fillStyle = 'rgba(246,243,234,0.22)'; ctx.fill();
+    txt('? ? ?', 120 + widths[i] / 2, 52, { size: 30, font: 'Oswald', weight: 700, alpha: 0.9 });
+    txt('?? P', 800, 52, { size: 50, font: 'Anton', align: 'right' });
+    ctx.restore();
+  }
+  // nedflyttningsstreck
+  if (t < 19.5) {
+    const la = eOut(P(t, 18.6, 18.9));
+    ctx.save(); ctx.setLineDash([22, 14]); ctx.lineWidth = 6; ctx.strokeStyle = `rgba(224,68,58,${la})`;
+    ctx.beginPath(); ctx.moveTo(90, 900 + 4 * 118 - 9); ctx.lineTo(990, 900 + 4 * 118 - 9); ctx.stroke(); ctx.restore();
+  }
+  const a = eBack(P(t, 20.4, 20.7));
+  txt('INGEN ÄR SÄKER.', CX, 1520, { size: 120, scale: a, alpha: clamp(a), color: C.white, ls: 4 });
+  const a2 = eOut(P(t, 20.9, 21.2));
+  txt('6 OMGÅNGAR ATT RÄDDA SIG PÅ', CX, 1650, { size: 48, font: 'Oswald', weight: 500, ls: 4, alpha: a2 * 0.85, color: C.red });
+  ctx.restore();
+}
+
+// ---------- scen 7: bästa tippare (22–26.5) ----------
+function reel(x, y, t, t0, tLock, seed) {
+  const w = 250, h = 340;
+  roundRect(x - w / 2, y - h / 2, w, h, 26);
+  ctx.fillStyle = 'rgba(5,12,7,0.85)'; ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = C.gold; ctx.stroke();
+  ctx.save(); roundRect(x - w / 2, y - h / 2, w, h, 26); ctx.clip();
+  if (t < tLock) {
+    const tt = t - t0;
+    const v = 14 - 8 * P(t, t0, tLock);
+    const pos = tt * v + seed * 3.3;
+    const base = Math.floor(pos), frac = pos - base;
+    for (let k = -1; k <= 1; k++) {
+      const d = ((base + k) % 10 + 10) % 10;
+      txt(String(d), x, y + (k - frac) * 260 * -1 * -1, { size: 260, color: C.white, alpha: 1 - Math.abs(k - frac) * 0.6 });
+    }
+  } else {
+    const b = eBack(P(t, tLock, tLock + 0.25));
+    txt('?', x, y + (1 - b) * -120, { size: 260, color: C.gold, glow: 'rgba(242,193,78,0.8)' });
+  }
+  const g = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+  g.addColorStop(0, 'rgba(5,12,7,0.9)'); g.addColorStop(0.25, 'rgba(5,12,7,0)'); g.addColorStop(0.75, 'rgba(5,12,7,0)'); g.addColorStop(1, 'rgba(5,12,7,0.9)');
+  ctx.fillStyle = g; ctx.fillRect(x - w / 2, y - h / 2, w, h);
+  ctx.restore();
+}
+function sTipster(t) {
+  const out = P(t, 26.3, 26.5);
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  [['VEM BLIR', 22.0, 250, 170, C.white], ['ÅRETS BÄSTA', 22.5, 430, 170, C.white], ['TIPPARE?', 23.0, 640, 230, C.gold]].forEach(([s, t0, y, sz, col]) => {
+    const sl = slam(t, t0, 0.2, 2.2);
+    if (sl.on) txt(s, CX, y, { size: sz, scale: sl.scale, alpha: sl.alpha, color: col, ls: 4, glow: col === C.gold ? 'rgba(242,193,78,0.5)' : null });
+  });
+  const rin = eOut(P(t, 23.0, 23.4));
+  ctx.save(); ctx.globalAlpha *= rin; ctx.translate(0, (1 - rin) * 150);
+  reel(400, 1110, t, 23.0, 25.5, 0.3);
+  reel(680, 1110, t, 23.0, 25.5, 0.7);
+  txt('RÄTT', CX, 1370, { size: 90, ls: 16, color: C.white });
+  ctx.restore();
+  const a = eOut(P(t, 25.6, 25.9));
+  txt('SVARET FINNS INTE ÄN.', CX, 1560, { size: 76, alpha: a, ls: 3 });
+  ctx.restore();
+}
+
+// ---------- scen 8: uppbyggnad (26.5–32) ----------
+const QS = [['VEM VINNER?', C.white], ['VEM ÅKER UT?', C.red], ['BÄSTA TIPPARE?', C.gold]];
+function buildCut(t) {
+  const segs = [];
+  for (let x = 26.5; x < 28.49; x += 0.5) segs.push([x, 0.5]);
+  for (let x = 28.5; x < 29.99; x += 0.25) segs.push([x, 0.25]);
+  for (let x = 30.0; x < 30.99; x += 0.125) segs.push([x, 0.125]);
+  for (let i = 0; i < segs.length; i++) if (t >= segs[i][0] && t < segs[i][0] + segs[i][1]) return [i, segs[i][0]];
+  return null;
+}
+function sBuild(t) {
+  const cut = buildCut(t);
+  if (cut) {
+    const [i, t0] = cut;
+    const [q, col] = QS[i % 3];
+    const inv = i % 2 === 1 && t > 28.5;
+    if (inv) { ctx.fillStyle = col === C.white ? C.grass : col; ctx.fillRect(0, 0, W, H); }
+    const zoom = 1 + (t - 26.5) * 0.06;
+    const p = P(t, t0, t0 + 0.12);
+    const words = q.split(' ');
+    const sz = 210;
+    words.forEach((w, k) => {
+      txt(w, CX, 960 + (k - (words.length - 1) / 2) * sz * 1.3, { size: sz, scale: zoom * lerp(1.3, 1, eExpo(p)), color: inv ? C.deep : col, ls: 4 });
+    });
+    // tidsstapel längst ned
+    const prog = P(t, 26.5, 31.0);
+    ctx.fillStyle = C.gold; ctx.fillRect(0, H - 22, W * prog, 22);
+  } else if (t >= 31.0 && t < 32.0) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const s = 'SVARET GES…';
+    const n = Math.floor(P(t, 31.1, 31.6) * s.length);
+    txt(s.slice(0, n), CX, 960, { size: 110, ls: 10, color: C.white });
+  }
+}
+
+// ---------- konfetti ----------
+const CONF = [];
+for (let i = 0; i < 260; i++) {
+  const ang = hash(i, 1) * Math.PI * 2, sp = 500 + hash(i, 2) * 1500;
+  CONF.push({ t0: i < 170 ? 32.0 : 32.0 + (i - 170) * 0.08, burst: i < 170,
+    x: i < 170 ? CX : hash(i, 3) * W, y: i < 170 ? 700 : -40,
+    vx: i < 170 ? Math.cos(ang) * sp : (hash(i, 4) - .5) * 120, vy: i < 170 ? Math.sin(ang) * sp - 500 : 150 + hash(i, 5) * 250,
+    col: [C.gold, C.white, C.lime, C.grass, C.gold][i % 5], w: 14 + hash(i, 6) * 16, h: 8 + hash(i, 7) * 10, spin: (hash(i, 8) - .5) * 20 });
+}
+function confetti(t) {
+  for (const c of CONF) {
+    const dt = t - c.t0; if (dt < 0) continue;
+    const drag = 2.2;
+    const k = (1 - Math.exp(-drag * dt)) / drag;
+    const g = 700;
+    const x = c.x + c.vx * k + Math.sin(dt * 3 + c.spin) * 30;
+    const y = c.y + c.vy * k + g * (dt - k) / drag * 1.0 + (c.burst ? 0 : 0);
+    if (y > H + 50) continue;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(dt * c.spin);
+    ctx.scale(1, Math.cos(dt * c.spin * 0.7));
+    ctx.fillStyle = c.col; ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+    ctx.restore();
+  }
+}
+
+// ---------- scen 9: droppen (32–40) ----------
+function clockFace(x, y, r, t) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(5,12,7,0.85)'; ctx.fill();
+  ctx.lineWidth = 12; ctx.strokeStyle = C.white; ctx.stroke();
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(Math.sin(a) * r * 0.78, -Math.cos(a) * r * 0.78); ctx.lineTo(Math.sin(a) * r * 0.9, -Math.cos(a) * r * 0.9);
+    ctx.lineWidth = i % 3 === 0 ? 12 : 6; ctx.strokeStyle = i === 0 ? C.gold : C.white; ctx.stroke();
+  }
+  // visarna snurrar in mot 12:00
+  const p = eOut(P(t, 36.0, 37.0));
+  const hA = (1 - p) * -Math.PI * 2 * 1.3, mA = (1 - p) * -Math.PI * 2 * 9;
+  const hand = (ang, len, w, col) => { ctx.save(); ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, -len); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.stroke(); ctx.restore(); };
+  hand(hA, r * 0.5, 22, C.white);
+  hand(mA, r * 0.75, 12, t >= 37 ? C.gold : C.white);
+  ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fillStyle = C.gold; ctx.fill();
+  ctx.restore();
+}
+function sDrop(t) {
+  // del A: logo + datum (32–36)
+  const outA = P(t, 35.75, 36.0);
+  if (t < 36.0) {
+    ctx.save(); ctx.globalAlpha = 1 - outA;
+    // chockvåg
+    const wp = P(t, 32.0, 32.8);
+    if (wp < 1) { ctx.beginPath(); ctx.arc(CX, 620, 350 + wp * 900, 0, Math.PI * 2); ctx.lineWidth = 40 * (1 - wp); ctx.strokeStyle = `rgba(242,193,78,${1 - wp})`; ctx.stroke(); }
+    const sl = slam(t, 32.0, 0.2, 3.0);
+    const glow = ctx.createRadialGradient(CX, 620, 200, CX, 620, 600);
+    glow.addColorStop(0, 'rgba(242,193,78,0.35)'); glow.addColorStop(1, 'rgba(242,193,78,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, 1300);
+    drawLogo(CX, 620, 680 * sl.scale * (1 + beat(t) * 0.02), sl.alpha);
+    const a1 = slam(t, 33.0, 0.18, 1.8), a2 = slam(t, 33.5, 0.18, 1.8), a3 = slam(t, 34.0, 0.18, 1.8);
+    if (a1.on) txt('LÖRDAG', CX, 1110, { size: 90, font: 'Oswald', weight: 600, ls: 24, scale: a1.scale, alpha: a1.alpha });
+    if (a2.on) txt('7 NOVEMBER', CX, 1270, { size: 175, color: C.gold, scale: a2.scale, alpha: a2.alpha, glow: 'rgba(242,193,78,0.6)' });
+    if (a3.on) txt('STOCKHOLM', CX, 1450, { size: 140, ls: 12, scale: a3.scale, alpha: a3.alpha });
+    const a4 = eOut(P(t, 34.6, 35.0));
+    txt('ÅRETS FEST', CX, 1600, { size: 54, font: 'Oswald', weight: 500, ls: 20, alpha: a4 * 0.85, color: C.lime });
+    ctx.restore();
+  } else {
+    // del B: klockan (36–40)
+    const out = P(t, 39.75, 40.0);
+    ctx.save(); ctx.globalAlpha = 1 - out;
+    const cin = eBack(P(t, 36.0, 36.3));
+    ctx.save(); ctx.translate(CX, 720); ctx.scale(cin, cin); ctx.translate(-CX, -720);
+    clockFace(CX, 720, 300, t);
+    ctx.restore();
+    const a1 = slam(t, 37.0, 0.18, 1.8), a2 = slam(t, 37.5, 0.2, 2.2);
+    if (a1.on) txt('FESTEN BÖRJAR', CX, 1200, { size: 150, scale: a1.scale, alpha: a1.alpha, ls: 4 });
+    if (a2.on) txt('VID LUNCH.', CX, 1400, { size: 230, color: C.gold, scale: a2.scale, alpha: a2.alpha, glow: 'rgba(242,193,78,0.6)' });
+    const a3 = eOut(P(t, 38.4, 38.8));
+    txt('KOM TIDIGT. STANNA SENT.', CX, 1590, { size: 64, font: 'Oswald', weight: 600, ls: 8, alpha: a3 });
+    ctx.restore();
+  }
+}
+
+// ---------- scen 10: slutbild (40–45) ----------
+function sEnd(t) {
+  const a0 = eOut(P(t, 40.0, 40.4));
+  const z = 1 + (t - 40) * 0.008;
+  ctx.save(); ctx.translate(CX, 960); ctx.scale(z, z); ctx.translate(-CX, -960);
+  drawLogo(CX, 470, 500 * lerp(1.4, 1, eExpo(P(t, 40, 40.3))), a0);
+  const v = slam(t, 40.5, 0.22, 2.2);
+  if (v.on) txt('VAR DÄR.', CX, 960, { size: 250, scale: v.scale, alpha: v.alpha, ls: 6, glow: 'rgba(139,195,74,0.5)' });
+  const a1 = eOut(P(t, 41.2, 41.6));
+  ctx.save(); ctx.globalAlpha = a1; ctx.fillStyle = C.gold; ctx.fillRect(CX - 180 * a1, 1100, 360 * a1, 6); ctx.restore();
+  txt('LÖRDAG 7 NOVEMBER', CX, 1200, { size: 84, alpha: a1, ls: 4 });
+  const a2 = eOut(P(t, 41.6, 42.0));
+  txt('STOCKHOLM · FRÅN LUNCH', CX, 1310, { size: 64, font: 'Oswald', weight: 600, ls: 6, alpha: a2, color: C.gold });
+  const a3 = eOut(P(t, 42.3, 42.8));
+  txt('4 OMGÅNGAR SPELADE. 6 KVAR. SEN FEST.', CX, 1500, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a3 * 0.85 });
+  txt('strykligan.se', CX, 1700, { size: 56, font: 'Oswald', weight: 500, ls: 4, alpha: a3 * 0.9, color: C.lime });
+  txt('SEDAN 2007', CX, 1780, { size: 32, font: 'Oswald', weight: 500, ls: 14, alpha: a3 * 0.6 });
+  ctx.restore();
+}
+
+// ---------- huvudloop ----------
+function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const tint = (t >= 17 && t < 22) ? 'red' : (t >= 22 && t < 26.5) || (t >= 32 && t < 36) ? 'gold' : null;
+  background(t, tint);
+  const [sx, sy] = shake(t);
+  ctx.save(); ctx.translate(sx, sy);
+  if (t < 2.0) sLogo(t);
+  else if (t < 5.0) sPlayed(t);
+  else if (t < 8.0) sLeft(t);
+  else if (t < 12.0) sCoupon(t);
+  else if (t < 17.0) sWinner(t);
+  else if (t < 22.0) sOut(t);
+  else if (t < 26.5) sTipster(t);
+  else if (t < 32.0) sBuild(t);
+  else if (t < 40.0) { sDrop(t); }
+  else sEnd(t);
+  if (t >= 32 && t < 44) { ctx.save(); ctx.globalAlpha = t > 40 ? clamp(1 - (t - 40) / 3) : 1; confetti(t); ctx.restore(); }
+  ctx.restore();
+  vignette();
+  const f = flash(t);
+  if (f > 0.001) { ctx.fillStyle = `rgba(255,250,235,${f})`; ctx.fillRect(0, 0, W, H); }
+  // slutfade till svart sista 0,3 s undviks: sista bilden ska kunna stå som affisch
+}
+window.render = render;
+window.ready = Promise.all([document.fonts.load('100px Anton'), document.fonts.load('600 100px Oswald'), new Promise(r => logo.complete ? r() : logo.onload = r)]);
+
+// förhandsvisning i webbläsare
+if (!location.search.includes('render')) {
+  const start = performance.now();
+  window.ready.then(() => {
+    const loop = () => { render(((performance.now() - start) / 1000) % 45); requestAnimationFrame(loop); };
+    loop();
+  });
+}
+</script></body></html>

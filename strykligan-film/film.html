@@ -438,7 +438,7 @@ function sTipster(t) {
   txt('RÄTT', CX, 1370, { size: 90, ls: 16, color: C.white });
   ctx.restore();
   const a = eOut(P(t, 25.6, 25.9));
-  txt('SVARET FINNS INTE ÄN.', CX, 1560, { size: 76, alpha: a, ls: 3 });
+  txt('AVGÖRS SISTA KVÄLLEN.', CX, 1560, { size: 76, alpha: a, ls: 3 });
   ctx.restore();
 }
 
@@ -471,7 +471,7 @@ function sBuild(t) {
     ctx.fillStyle = C.gold; ctx.fillRect(0, H - 22, W * prog, 22);
   } else if (t >= 31.0 && t < 32.0) {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    const s = 'SVARET GES…';
+    const s = 'ALLT AVGÖRS…';
     const n = Math.floor(P(t, 31.1, 31.6) * s.length);
     txt(s.slice(0, n), CX, 960, { size: 110, ls: 10, color: C.white });
   }
@@ -540,7 +540,7 @@ function sDrop(t) {
     if (a2.on) txt('7 NOVEMBER', CX, 1270, { size: 175, color: C.gold, scale: a2.scale, alpha: a2.alpha, glow: 'rgba(242,193,78,0.6)' });
     if (a3.on) txt('STOCKHOLM', CX, 1450, { size: 140, ls: 12, scale: a3.scale, alpha: a3.alpha });
     const a4 = eOut(P(t, 34.6, 35.0));
-    txt('ÅRETS FEST', CX, 1600, { size: 54, font: 'Oswald', weight: 500, ls: 20, alpha: a4 * 0.85, color: C.lime });
+    txt('SISTA KVÄLLEN. ÅRETS FEST.', CX, 1600, { size: 52, font: 'Oswald', weight: 500, ls: 6, alpha: a4 * 0.85, color: C.lime });
     ctx.restore();
   } else {
     // del B: klockan (36–40)
@@ -573,7 +573,7 @@ function sEnd(t) {
   const a2 = eOut(P(t, 41.6, 42.0));
   txt('STOCKHOLM · FRÅN LUNCH', CX, 1310, { size: 64, font: 'Oswald', weight: 600, ls: 6, alpha: a2, color: C.gold });
   const a3 = eOut(P(t, 42.3, 42.8));
-  txt('4 DIVISIONER. 10 OMGÅNGAR. EN FEST.', CX, 1500, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a3 * 0.85 });
+  txt('TITLAR, UPP- OCH NEDFLYTTNINGAR. ALLT PÅ EN KVÄLL.', CX, 1500, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a3 * 0.85 });
   txt('strykligan.se', CX, 1700, { size: 56, font: 'Oswald', weight: 500, ls: 4, alpha: a3 * 0.9, color: C.lime });
   txt('SEDAN 2007', CX, 1780, { size: 32, font: 'Oswald', weight: 500, ls: 14, alpha: a3 * 0.6 });
   ctx.restore();

@@ -143,49 +143,84 @@ function sLogo(t) {
   txt('NEDRÄKNINGEN TILL 7 NOVEMBER', CX, 1450, { size: 46, font: 'Oswald', weight: 500, ls: 8, color: C.gold, alpha: a });
 }
 
-// ---------- 10-segments-stapel ----------
-function roundsBar(t, played, y, mode) {
-  const w = 76, gap = 12, x0 = CX - (10 * w + 9 * gap) / 2;
-  for (let i = 0; i < 10; i++) {
-    const x = x0 + i * (w + gap);
-    const done = i < played;
-    const ap = done ? P(t, (mode.start || 0) + i * 0.15, (mode.start || 0) + i * 0.15 + 0.15) : 1;
-    roundRect(x, y, w, 34, 8);
-    if (done) {
-      ctx.fillStyle = `rgba(111,168,79,${ap})`; ctx.fill();
-    } else {
-      const pulse = mode.pulse ? 0.45 + 0.55 * Math.abs(Math.sin((t - i * 0.08) * 6)) : 0.3;
-      ctx.lineWidth = 4; ctx.strokeStyle = mode.pulse ? `rgba(242,193,78,${pulse})` : 'rgba(246,243,234,0.3)'; ctx.stroke();
-    }
-    txt(String(i + 1), x + w / 2, y + 70, { size: 30, font: 'Oswald', weight: 500, alpha: done ? 0.9 : 0.45 });
-  }
+// ---------- pil ----------
+function arrow(x, y, up, size, col, alpha = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.globalAlpha *= alpha; if (!up) ctx.rotate(Math.PI);
+  ctx.beginPath(); ctx.moveTo(0, -size); ctx.lineTo(size * 0.9, size * 0.2); ctx.lineTo(size * 0.32, size * 0.2);
+  ctx.lineTo(size * 0.32, size); ctx.lineTo(-size * 0.32, size); ctx.lineTo(-size * 0.32, size * 0.2); ctx.lineTo(-size * 0.9, size * 0.2);
+  ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.restore();
 }
 
-// ---------- scen 2: 4 av 10 (2–5) ----------
-function sPlayed(t) {
+// ---------- scen 2: fyra divisioner (2–5) ----------
+function sDivisions(t) {
   const out = eIn(P(t, 4.75, 5.0));
   ctx.save(); ctx.translate(-out * 1200, 0);
   const s4 = slam(t, 2.0, 0.25, 2.6);
-  txt('4', CX, 760, { size: 760, scale: s4.scale, alpha: s4.alpha, glow: 'rgba(139,195,74,0.6)', glowBlur: 60 });
+  txt('4', CX, 560, { size: 640, scale: s4.scale, alpha: s4.alpha, glow: 'rgba(139,195,74,0.6)', glowBlur: 60 });
   const a1 = eOut(P(t, 2.5, 2.8));
-  txt('AV 10', CX + (1 - a1) * 300, 1220, { size: 150, alpha: a1, ls: 6 });
-  const a2 = eOut(P(t, 3.0, 3.3));
-  txt('OMGÅNGAR SPELADE', CX, 1360, { size: 64, font: 'Oswald', weight: 600, ls: 10, alpha: a2, color: C.lime });
-  if (t >= 3.0) roundsBar(t, 4, 1480, { start: 3.0 });
+  txt('DIVISIONER', CX + (1 - a1) * 300, 960, { size: 150, alpha: a1, ls: 8 });
+  // stegen
+  for (let d = 0; d < 4; d++) {
+    const y = 1110 + d * 128, w = 520 + d * 120;
+    const a = eBack(P(t, 3.0 + d * 0.12, 3.3 + d * 0.12));
+    if (a <= 0) continue;
+    ctx.save(); ctx.translate(CX, y + 50); ctx.scale(a, a); ctx.translate(-CX, -(y + 50));
+    roundRect(CX - w / 2, y, w, 100, 18);
+    ctx.fillStyle = d === 0 ? 'rgba(242,193,78,0.9)' : `rgba(246,243,234,${0.16 - d * 0.02})`; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = d === 0 ? C.gold : 'rgba(246,243,234,0.35)'; ctx.stroke();
+    txt('DIVISION ' + (d + 1), CX, y + 52, { size: 54, font: 'Oswald', weight: 700, ls: 10, color: d === 0 ? C.ink : C.white });
+    ctx.restore();
+    // pilar mellan nivåerna: upp till vänster, ned till höger
+    if (d > 0 && t > 3.6) {
+      const ph = ((t - 3.6) * 1.6 + d * 0.3) % 1;
+      const xL = CX - w / 2 - 50, xR = CX + w / 2 + 50;
+      arrow(xL, y + 50 - ph * 60, true, 26, C.lime, Math.sin(ph * Math.PI));
+      arrow(xR, y - 78 + ph * 60, false, 26, C.red, Math.sin(ph * Math.PI));
+    }
+  }
+  const a2 = eOut(P(t, 3.9, 4.2));
+  txt('UPP. NER. VARJE SÄSONG.', CX, 1680, { size: 56, font: 'Oswald', weight: 600, ls: 6, alpha: a2, color: C.lime });
   ctx.restore();
 }
 
-// ---------- scen 3: 6 kvar (5–8) ----------
-function sLeft(t) {
+// ---------- scen 3: man mot man (5–8) ----------
+const SCORES = [[8, 8], [9, 8], [9, 9], [10, 9], [10, 10], [11, 10], [11, 11], [12, 11], [12, 12]];
+function sDuel(t) {
   const out = P(t, 7.75, 8.0);
   ctx.save(); ctx.globalAlpha = 1 - out;
-  const s6 = slam(t, 5.0, 0.25, 2.6);
-  txt('6', CX, 760, { size: 760, scale: s6.scale * (1 + out * .4), alpha: s6.alpha, color: C.gold, glow: 'rgba(242,193,78,0.55)', glowBlur: 70 });
-  const a1 = eOut(P(t, 5.4, 5.7));
-  txt('OMGÅNGAR KVAR', CX, 1220, { size: 118, alpha: a1, ls: 4 });
-  roundsBar(t, 4, 1350, { start: -10, pulse: true });
+  const s1 = slam(t, 5.0, 0.22, 2.4);
+  txt('MAN MOT MAN', CX, 300, { size: 170, scale: s1.scale, alpha: s1.alpha, ls: 4 });
+  const a0 = eOut(P(t, 5.3, 5.6));
+  txt('VARJE OMGÅNG. EN MOTSTÅNDARE.', CX, 440, { size: 46, font: 'Oswald', weight: 600, ls: 5, alpha: a0, color: C.lime });
+  // resultattavla
+  const bin = eBack(P(t, 5.2, 5.5));
+  ctx.save(); ctx.translate(CX, 760); ctx.scale(bin, bin);
+  roundRect(-330, -150, 660, 300, 30); ctx.fillStyle = 'rgba(5,12,7,0.9)'; ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = C.gold; ctx.stroke();
+  const locked = t >= 7.2;
+  const k = clamp(Math.floor((t - 5.4) / 0.2), 0, SCORES.length - 1);
+  const [a, b] = SCORES[k];
+  const tie = a === b;
+  if (!locked) {
+    txt(String(a), -170, 8, { size: 210, color: tie ? C.gold : C.white });
+    txt(String(b), 170, 8, { size: 210, color: tie ? C.gold : C.white });
+  } else {
+    const q = eBack(P(t, 7.2, 7.4));
+    txt('?', -170, 8, { size: 210, color: C.gold, scale: q, glow: 'rgba(242,193,78,0.8)' });
+    txt('?', 170, 8, { size: 210, color: C.gold, scale: q, glow: 'rgba(242,193,78,0.8)' });
+  }
+  txt('–', 0, 0, { size: 150, alpha: 0.7 });
+  txt('RÄTT', 0, 118, { size: 30, font: 'Oswald', weight: 600, ls: 10, alpha: 0.6 });
+  ctx.restore();
+  // två tippare
+  const pin = eOut(P(t, 5.1, 5.5));
+  ctx.save(); ctx.globalAlpha *= pin;
+  player(250 - (1 - pin) * 300, 1560, 470, 0.6 + 0.4 * Math.abs(Math.sin(t * 4)), 1);
+  player(830 + (1 - pin) * 300, 1560, 470, 0.6 + 0.4 * Math.abs(Math.cos(t * 4)), 2);
+  ctx.restore();
+  txt('VS', CX, 1340, { size: 120, color: C.red, alpha: pin, scale: 1 + beat(t + 7) * 0.0 + 0.05 * Math.sin(t * 12), glow: 'rgba(224,68,58,0.7)' });
   const a2 = eBack(P(t, 6.5, 6.8));
-  txt('ALLT KAN HÄNDA.', CX, 1580, { size: 100, scale: a2, alpha: clamp(a2), color: C.white, ls: 4 });
+  txt('ETT RÄTT AVGÖR.', CX, 1720, { size: 100, scale: a2, alpha: clamp(a2), ls: 4 });
   ctx.restore();
 }
 
@@ -314,31 +349,36 @@ function sWinner(t) {
 function sOut(t) {
   const out = P(t, 21.75, 22.0);
   ctx.save(); ctx.globalAlpha = 1 - out;
-  [['VEM', 17.0, 200, C.white], ['ÅKER', 17.5, 440, C.white], ['UT?', 18.0, 680, C.red]].forEach(([s, t0, y, col]) => {
+  [['UPP', 17.0, 200, C.lime], ['ELLER', 17.5, 440, C.white], ['NER?', 18.0, 680, C.red]].forEach(([s, t0, y, col]) => {
     const sl = slam(t, t0, 0.2, 2.2);
-    if (sl.on) txt(s, CX, y, { size: 200, scale: sl.scale, alpha: sl.alpha, color: col, ls: 6, glow: col === C.red ? 'rgba(224,68,58,0.7)' : null });
+    if (sl.on) txt(s, CX, y, { size: 200, scale: sl.scale, alpha: sl.alpha, color: col, ls: 6, glow: col === C.red ? 'rgba(224,68,58,0.7)' : col === C.lime ? 'rgba(139,195,74,0.6)' : null });
   });
   const tin = eOut(P(t, 17.2, 17.6));
-  txt('TABELLEN EFTER 4 OMGÅNGAR', CX, 850, { size: 40, font: 'Oswald', weight: 600, ls: 8, alpha: tin * 0.8, color: C.lime });
+  txt('DIVISION ?  ·  TABELLEN', CX, 850, { size: 40, font: 'Oswald', weight: 600, ls: 8, alpha: tin * 0.8, color: C.lime });
   const widths = [300, 240, 330, 270, 310, 250];
   for (let i = 0; i < 6; i++) {
     let y = 900 + i * 118, x = 110, rot = 0;
     const rin = eOut(P(t, 17.3 + i * 0.07, 17.7 + i * 0.07));
-    const danger = i >= 4;
+    const danger = i >= 4, promo = i === 0;
     const fallT = i === 5 ? 19.5 : 19.8;
+    let fade = 1;
+    if (promo && t > 19.5) { const ft = t - 19.5; y -= 2200 * ft * ft + 300 * ft; fade = clamp(1 - ft * 1.6); }
     if (danger && t > fallT) {
       const ft = t - fallT;
       y += 1600 * ft * ft + 60 * ft; rot = (i === 5 ? 0.35 : -0.28) * ft * 3; x += (i === 5 ? 80 : -60) * ft;
     }
-    ctx.save(); ctx.globalAlpha *= rin;
+    ctx.save(); ctx.globalAlpha *= rin * fade;
     ctx.translate(x + 430, y + 50); ctx.rotate(rot); ctx.translate(-430, -50);
     const wob = danger && t > 18.6 && t < fallT ? Math.sin(t * 60) * 4 : 0;
     ctx.translate(wob, 0);
     roundRect(0, 0, 860, 100, 16);
-    ctx.fillStyle = danger ? (t > 18.6 ? `rgba(224,68,58,${0.55 + 0.3 * Math.abs(Math.sin(t * 8))})` : 'rgba(224,68,58,0.35)') : 'rgba(246,243,234,0.08)';
+    const pul = 0.3 * Math.abs(Math.sin(t * 8));
+    ctx.fillStyle = danger ? (t > 18.6 ? `rgba(224,68,58,${0.55 + pul})` : 'rgba(224,68,58,0.35)')
+      : promo ? (t > 18.6 ? `rgba(111,168,79,${0.6 + pul})` : 'rgba(111,168,79,0.4)') : 'rgba(246,243,234,0.08)';
     ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = danger ? 'rgba(224,68,58,0.9)' : 'rgba(246,243,234,0.18)'; ctx.stroke();
-    txt(String(i + 1), 60, 52, { size: 60, font: 'Anton', color: danger ? C.white : C.lime });
+    ctx.lineWidth = 3; ctx.strokeStyle = danger ? 'rgba(224,68,58,0.9)' : promo ? 'rgba(139,195,74,0.95)' : 'rgba(246,243,234,0.18)'; ctx.stroke();
+    txt(String(i + 1), 60, 52, { size: 60, font: 'Anton', color: danger || promo ? C.white : C.lime });
+    if ((promo || danger) && t > 18.6) arrow(905, 50, promo, 30, promo ? C.lime : C.red, eOut(P(t, 18.6, 18.9)));
     roundRect(120, 32, widths[i], 36, 18); ctx.fillStyle = 'rgba(246,243,234,0.22)'; ctx.fill();
     txt('? ? ?', 120 + widths[i] / 2, 52, { size: 30, font: 'Oswald', weight: 700, alpha: 0.9 });
     txt('?? P', 800, 52, { size: 50, font: 'Anton', align: 'right' });
@@ -348,12 +388,14 @@ function sOut(t) {
   if (t < 19.5) {
     const la = eOut(P(t, 18.6, 18.9));
     ctx.save(); ctx.setLineDash([22, 14]); ctx.lineWidth = 6; ctx.strokeStyle = `rgba(224,68,58,${la})`;
-    ctx.beginPath(); ctx.moveTo(90, 900 + 4 * 118 - 9); ctx.lineTo(990, 900 + 4 * 118 - 9); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(90, 900 + 4 * 118 - 9); ctx.lineTo(990, 900 + 4 * 118 - 9); ctx.stroke();
+    ctx.strokeStyle = `rgba(139,195,74,${la})`;
+    ctx.beginPath(); ctx.moveTo(90, 900 + 118 - 9); ctx.lineTo(990, 900 + 118 - 9); ctx.stroke(); ctx.restore();
   }
   const a = eBack(P(t, 20.4, 20.7));
   txt('INGEN ÄR SÄKER.', CX, 1520, { size: 120, scale: a, alpha: clamp(a), color: C.white, ls: 4 });
   const a2 = eOut(P(t, 20.9, 21.2));
-  txt('6 OMGÅNGAR ATT RÄDDA SIG PÅ', CX, 1650, { size: 48, font: 'Oswald', weight: 500, ls: 4, alpha: a2 * 0.85, color: C.red });
+  txt('RIVALEN SITTER EN RAD OVANFÖR.', CX, 1650, { size: 48, font: 'Oswald', weight: 500, ls: 4, alpha: a2 * 0.9, color: C.gold });
   ctx.restore();
 }
 
@@ -401,7 +443,7 @@ function sTipster(t) {
 }
 
 // ---------- scen 8: uppbyggnad (26.5–32) ----------
-const QS = [['VEM VINNER?', C.white], ['VEM ÅKER UT?', C.red], ['BÄSTA TIPPARE?', C.gold]];
+const QS = [['VEM VINNER?', C.white], ['UPP ELLER NER?', C.red], ['BÄSTA TIPPARE?', C.gold]];
 function buildCut(t) {
   const segs = [];
   for (let x = 26.5; x < 28.49; x += 0.5) segs.push([x, 0.5]);
@@ -531,7 +573,7 @@ function sEnd(t) {
   const a2 = eOut(P(t, 41.6, 42.0));
   txt('STOCKHOLM · FRÅN LUNCH', CX, 1310, { size: 64, font: 'Oswald', weight: 600, ls: 6, alpha: a2, color: C.gold });
   const a3 = eOut(P(t, 42.3, 42.8));
-  txt('4 OMGÅNGAR SPELADE. 6 KVAR. SEN FEST.', CX, 1500, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a3 * 0.85 });
+  txt('4 DIVISIONER. 10 OMGÅNGAR. EN FEST.', CX, 1500, { size: 40, font: 'Oswald', weight: 500, ls: 3, alpha: a3 * 0.85 });
   txt('strykligan.se', CX, 1700, { size: 56, font: 'Oswald', weight: 500, ls: 4, alpha: a3 * 0.9, color: C.lime });
   txt('SEDAN 2007', CX, 1780, { size: 32, font: 'Oswald', weight: 500, ls: 14, alpha: a3 * 0.6 });
   ctx.restore();
@@ -545,8 +587,8 @@ function render(t) {
   const [sx, sy] = shake(t);
   ctx.save(); ctx.translate(sx, sy);
   if (t < 2.0) sLogo(t);
-  else if (t < 5.0) sPlayed(t);
-  else if (t < 8.0) sLeft(t);
+  else if (t < 5.0) sDivisions(t);
+  else if (t < 8.0) sDuel(t);
   else if (t < 12.0) sCoupon(t);
   else if (t < 17.0) sWinner(t);
   else if (t < 22.0) sOut(t);
